@@ -833,12 +833,27 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function parseDate(d) {
+  if (!d) return null;
+  const s = String(d).trim();
+  if (/^\d{4,6}$/.test(s) && Number(s) > 1000) {
+    const utc_days = Math.floor(Number(s) - 25569);
+    return new Date(utc_days * 86400 * 1000);
+  }
+  try {
+    const dt = new Date(s.includes('T') ? s : s + 'T00:00:00');
+    if (!isNaN(dt)) return dt;
+  } catch {}
+  return null;
+}
+
 function fmtDate(d) {
   if (!d) return '—';
+  const dt = parseDate(d);
+  if (!dt || isNaN(dt)) return '—';
   try {
-    const dt = new Date(d + (d.includes('T') ? '' : 'T00:00:00'));
     return dt.toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'2-digit' });
-  } catch { return d; }
+  } catch { return String(d); }
 }
 
 function showToast(msg, err = false) {
