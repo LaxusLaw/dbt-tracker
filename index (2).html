@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dbt Labs — Partner Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --orange: #FF694B;
+  --orange-glow: rgba(255,105,75,0.15);
+  --dark: #0a0a0a;
+  --mid: #141414;
+  --card: #1a1a1a;
+  --card2: #1f1f1f;
+  --border: #242424;
+  --border2: #2e2e2e;
+  --text: #efefef;
+  --text2: #aaa;
+  --muted: #666;
+  --green: #22c55e;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --blue: #3b82f6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--dark);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;}
+
+/* ── AUTH SCREEN ── */
+#authScreen{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:var(--dark);z-index:1000;
+}
+.auth-card{
+  background:var(--mid);border:1px solid var(--border2);border-radius:20px;
+  padding:48px;max-width:420px;width:90%;text-align:center;
+  box-shadow:0 0 80px rgba(255,105,75,0.08);
+}
+.auth-logo{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--orange);
+  letter-spacing:-0.5px;margin-bottom:4px;
+}
+.auth-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:36px;}
+.auth-icon{
+  width:72px;height:72px;border-radius:18px;background:var(--orange-glow);
+  border:1px solid rgba(255,105,75,0.25);display:flex;align-items:center;
+  justify-content:center;font-size:30px;margin:0 auto 24px;
+}
+.auth-title{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-bottom:10px;letter-spacing:-0.3px;}
+.auth-desc{color:var(--text2);font-size:14px;line-height:1.6;margin-bottom:32px;}
+.auth-btn{
+  width:100%;padding:14px;background:var(--orange);color:#fff;border:none;
+  border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:15px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:background 0.2s,transform 0.1s;
+}
+.auth-btn:hover{background:#e85a3d;transform:translateY(-1px);}
+.auth-btn:active{transform:translateY(0);}
+.auth-btn svg{width:20px;height:20px;flex-shrink:0;}
+.auth-note{margin-top:16px;font-size:11px;color:var(--muted);line-height:1.5;}
+
+/* ── LAYOUT ── */
+#app{display:flex;height:100vh;overflow:hidden;opacity:0;transition:opacity 0.4s;}
+#app.ready{opacity:1;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:252px;min-width:252px;background:var(--mid);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-top{padding:20px 16px 12px;border-bottom:1px solid var(--border);}
+.s-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:var(--orange);letter-spacing:-0.3px;}
+.s-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:1px;margin-top:1px;}
+.s-user{
+  display:flex;align-items:center;gap:8px;margin-top:12px;padding:8px 10px;
+  background:var(--card);border-radius:8px;border:1px solid var(--border);
+}
+.s-avatar{
+  width:28px;height:28px;border-radius:50%;background:var(--orange);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  flex-shrink:0;overflow:hidden;
+}
+.s-avatar img{width:100%;height:100%;object-fit:cover;}
+.s-name{font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.s-signout{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 6px;border-radius:4px;transition:color 0.2s;}
+.s-signout:hover{color:var(--text);}
+
+.s-section{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:1.5px;color:var(--muted);padding:14px 16px 6px;text-transform:uppercase;}
+.partner-list{flex:1;overflow-y:auto;padding:0 8px 16px;}
+.partner-list::-webkit-scrollbar{width:4px;}
+.partner-list::-webkit-scrollbar-track{background:transparent;}
+.partner-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.p-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+  cursor:pointer;transition:background 0.15s;margin-bottom:1px;
+}
+.p-item:hover{background:var(--border);}
+.p-item.active{background:var(--orange-glow);}
+.p-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.p-name{font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.p-item.active .p-name{color:var(--orange);}
+.p-count{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);background:var(--border);padding:1px 7px;border-radius:99px;}
+.p-item.active .p-count{background:var(--orange-glow);color:var(--orange);}
+
+.s-sync-btn{
+  margin:8px 12px 12px;padding:9px;background:var(--card);border:1px solid var(--border2);
+  color:var(--text2);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:border-color 0.2s,color 0.2s;
+}
+.s-sync-btn:hover{border-color:var(--orange);color:var(--orange);}
+.s-sync-btn.spinning svg{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+.topbar{
+  padding:0 24px;height:56px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--mid);flex-shrink:0;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.t-title{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;letter-spacing:-0.3px;}
+.t-badge{
+  font-size:10px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:99px;
+  background:var(--orange-glow);color:var(--orange);border:1px solid rgba(255,105,75,0.2);
+}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+
+.search-wrap{
+  display:flex;align-items:center;background:var(--card);border:1px solid var(--border2);
+  border-radius:8px;padding:7px 11px;gap:7px;width:200px;transition:border-color 0.2s;
+}
+.search-wrap:focus-within{border-color:var(--orange);}
+.search-wrap input{background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;width:100%;}
+.search-wrap input::placeholder{color:var(--muted);}
+
+.t-select{
+  background:var(--card);border:1px solid var(--border2);border-radius:8px;
+  padding:7px 11px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;
+  outline:none;cursor:pointer;
+}
+.t-select:focus{border-color:var(--orange);}
+
+.t-add{
+  padding:8px 14px;background:var(--orange);color:#fff;border:none;border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:background 0.2s;white-space:nowrap;
+}
+.t-add:hover{background:#e85a3d;}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:22px 24px;}
+.content::-webkit-scrollbar{width:6px;}
+.content::-webkit-scrollbar-track{background:transparent;}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── DASHBOARD ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat-lbl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:30px;letter-spacing:-1px;line-height:1;}
+
+.partners-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.pc{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;cursor:pointer;transition:border-color 0.2s,transform 0.15s;
+}
+.pc:hover{border-color:var(--orange);transform:translateY(-2px);}
+.pc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.pc-name{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.2px;}
+.h-dot{width:7px;height:7px;border-radius:50%;margin-top:3px;flex-shrink:0;}
+.pc-bar{height:3px;background:var(--border2);border-radius:99px;margin-bottom:12px;overflow:hidden;}
+.pc-fill{height:100%;background:var(--orange);border-radius:99px;transition:width 0.5s ease;}
+.pc-stats{display:flex;gap:14px;}
+.ms{display:flex;flex-direction:column;gap:1px;}
+.ms-v{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;}
+.ms-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+
+/* ── TABLE ── */
+.detail-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.back{
+  background:var(--card);border:1px solid var(--border2);color:var(--muted);
+  padding:6px 12px;border-radius:7px;cursor:pointer;font-size:13px;
+  font-family:'DM Sans',sans-serif;transition:color 0.2s,border-color 0.2s;
+  display:flex;align-items:center;gap:5px;
+}
+.back:hover{color:var(--text);border-color:var(--muted);}
+.d-title{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px;}
+.d-meta{margin-left:auto;font-size:12px;color:var(--muted);}
+
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:#0f0f0f;border-bottom:1px solid var(--border);}
+th{
+  padding:11px 13px;text-align:left;font-size:9px;font-family:'DM Mono',monospace;
+  letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,0.02);}
+td{padding:11px 13px;font-size:13px;vertical-align:top;}
+.td-num{color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;width:32px;}
+.td-action{max-width:280px;font-weight:500;line-height:1.4;}
+.td-notes{max-width:240px;color:var(--muted);font-size:12px;line-height:1.4;}
+.td-owner{font-size:12px;white-space:nowrap;}
+.td-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;}
+.bdot{width:5px;height:5px;border-radius:50%;}
+.b-ip{background:rgba(59,130,246,0.15);color:#60a5fa;} .b-ip .bdot{background:#3b82f6;}
+.b-done{background:rgba(34,197,94,0.15);color:#4ade80;} .b-done .bdot{background:#22c55e;}
+.b-block{background:rgba(239,68,68,0.15);color:#f87171;} .b-block .bdot{background:#ef4444;}
+.b-ns{background:rgba(156,163,175,0.1);color:#666;} .b-ns .bdot{background:#555;}
+.b-def{background:rgba(168,85,247,0.15);color:#c084fc;} .b-def .bdot{background:#a855f7;}
+
+.cat{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;background:var(--border);color:var(--muted);}
+.pri-h{color:#f87171;font-size:12px;} .pri-m{color:#fbbf24;font-size:12px;} .pri-l{color:#4ade80;font-size:12px;}
+
+.row-acts{display:flex;gap:4px;opacity:0;transition:opacity 0.15s;}
+tbody tr:hover .row-acts{opacity:1;}
+.ra{background:none;border:none;color:var(--muted);cursor:pointer;padding:3px 5px;border-radius:4px;font-size:13px;transition:color 0.15s,background 0.15s;}
+.ra:hover{color:var(--text);background:var(--border);}
+.ra.del:hover{color:var(--red);}
+
+.empty{text-align:center;padding:48px;color:var(--muted);}
+.empty-i{font-size:32px;margin-bottom:10px;}
+
+/* ── MODAL ── */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);
+  z-index:300;align-items:center;justify-content:center;padding:20px;
+  backdrop-filter:blur(6px);
+}
+.overlay.open{display:flex;}
+.modal{
+  background:var(--mid);border:1px solid var(--border2);border-radius:16px;
+  width:100%;max-width:540px;max-height:92vh;overflow-y:auto;
+  animation:slideUp 0.25s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.m-head{padding:20px 22px 0;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.m-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;}
+.m-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;border-radius:4px;transition:color 0.2s;}
+.m-close:hover{color:var(--text);}
+.m-body{padding:0 22px 4px;}
+.m-foot{padding:14px 22px 20px;display:flex;gap:8px;justify-content:flex-end;}
+
+.fg{margin-bottom:14px;}
+.flbl{display:block;font-size:9px;font-family:'DM Mono',monospace;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+.fi,.fs,.fta{
+  width:100%;background:var(--card);border:1px solid var(--border2);border-radius:8px;
+  padding:9px 11px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;
+  outline:none;transition:border-color 0.2s;
+}
+.fi:focus,.fs:focus,.fta:focus{border-color:var(--orange);}
+.fta{resize:vertical;min-height:72px;}
+.fs option{background:var(--mid);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+.btn-sec{
+  padding:9px 16px;background:var(--card);border:1px solid var(--border2);
+  color:var(--text);border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:13px;transition:background 0.2s;
+}
+.btn-sec:hover{background:var(--border);}
+.btn-pri{
+  padding:9px 18px;background:var(--orange);border:none;color:#fff;border-radius:8px;
+  cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;
+  transition:background 0.2s;display:flex;align-items:center;gap:6px;
+}
+.btn-pri:hover{background:#e85a3d;}
+.btn-pri:disabled{background:#888;cursor:not-allowed;}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:22px;right:22px;background:var(--card2);border:1px solid var(--border2);
+  border-left:3px solid var(--green);border-radius:10px;padding:11px 16px;font-size:13px;
+  z-index:999;transform:translateY(70px);opacity:0;transition:all 0.3s ease;pointer-events:none;
+  max-width:320px;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.err{border-left-color:var(--red);}
+
+/* ── LOADING ── */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--orange);border-radius:50%;animation:spin 0.7s linear infinite;}
+
+/* ── MOBILE ── */
+.hamburger{display:none;background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px;}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:90;}
+
+@media(max-width:768px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:100;transform:translateX(-100%);transition:transform 0.3s ease;}
+  .sidebar.open{transform:translateX(0);}
+  .mob-overlay.open{display:block;}
+  .main{width:100%;}
+  .hamburger{display:block;}
+  .stat-row{grid-template-columns:repeat(2,1fr);}
+  .partners-grid{grid-template-columns:1fr;}
+  .frow{grid-template-columns:1fr;}
+  .search-wrap{width:140px;}
+  .topbar{padding:0 14px;}
+  .content{padding:14px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">dbt Labs</div>
+    <div class="auth-sub">ANZ PARTNER TRACKER</div>
+    <div class="auth-icon">📊</div>
+    <div class="auth-title">Sign in to continue</div>
+    <div class="auth-desc">Connect with Google to sync your partner action items directly with your Google Sheet. Your data stays in your Sheet — the app just reads and writes to it.</div>
+    <button class="auth-btn" onclick="signIn()">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-note">You'll be asked to grant access to Google Sheets so the app can read and update your tracker. No data is stored on any server.</div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="s-logo">dbt Labs</div>
+      <div class="s-sub">ANZ PARTNER TRACKER</div>
+      <div class="s-user" id="userInfo">
+        <div class="s-avatar" id="userAvatar">?</div>
+        <div class="s-name" id="userName">Loading...</div>
+        <button class="s-signout" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+    <div class="s-section">Partners</div>
+    <div class="partner-list" id="partnerList"></div>
+    <button class="s-sync-btn" id="syncBtn" onclick="syncSheet()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      Sync with Google Sheets
+    </button>
+  </aside>
+
+  <div class="mob-overlay" id="mobOverlay" onclick="closeSidebar()"></div>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="t-title" id="topTitle">Dashboard</div>
+        <div class="t-badge" id="topBadge" style="display:none"></div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-wrap">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search..." id="searchInp" oninput="handleSearch()">
+        </div>
+        <select class="t-select" id="statusFlt" onchange="handleSearch()">
+          <option value="">All Status</option>
+          <option>Not Started</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+          <option>Blocked</option>
+          <option>Deferred</option>
+        </select>
+        <button class="t-add" id="addBtn" onclick="openAdd()" style="display:none">+ Add Action</button>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <div class="empty"><div class="empty-i">⏳</div><p>Loading your tracker...</p></div>
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="m-head">
+      <div class="m-title" id="modalTitle">Add Action Item</div>
+      <button class="m-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="m-body">
+      <input type="hidden" id="editIdx">
+      <div class="fg">
+        <label class="flbl">Action Item *</label>
+        <textarea class="fta" id="fAction" placeholder="Describe the action item..."></textarea>
+      </div>
+      <div class="frow">
+        <div class="fg">
+          <label class="flbl">Category</label>
+          <select class="fs" id="fCat">
+            <option value="">Select...</option>
+            <option>Enablement</option><option>Co-Sell</option><option>Pipeline</option>
+            <option>Technical</option><option>Marketing</option><option>Certification</option><option>Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flbl">Due Date</label>
+          <input type="date" class="fi" id="fDue">
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg">
+          <label class="flbl">Status</label>
+          <select class="fs" id="fStatus">
+            <option>Not Started</option><option>In Progress</option>
+            <option>Completed</option><option>Blocked</option><option>Deferred</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="flbl">Priority</label>
+          <select class="fs" id="fPri">
+            <option value="🔴 High">🔴 High</option>
+            <option value="🟡 Medium">🟡 Medium</option>
+            <option value="🟢 Low">🟢 Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="flbl">Owner</label>
+        <input type="text" class="fi" id="fOwner" placeholder="e.g. Dylan, KT / Sammy">
+      </div>
+      <div class="fg">
+        <label class="flbl">Notes / Next Steps</label>
+        <textarea class="fta" id="fNotes" placeholder="Context, blockers, next steps..."></textarea>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn-sec" onclick="closeModal()">Cancel</button>
+      <button class="btn-pri" id="saveBtn" onclick="saveAction()">
+        <span id="saveTxt">Save Action</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG — fill these in after Google Cloud setup ──
+const CONFIG = {
+  CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID',        // From Google Cloud Console
+  SPREADSHEET_ID: '1aRGAP32y1ObGDepk-MIdYT7g9BLBn5BzF_BpE5WBMjs',
+  SCOPES: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile',
+};
+
+// ── STATE ──
+let tokenClient, accessToken;
+let appData = {}; // { sheetName: [ {action,category,dueDate,status,priority,owner,notes,rowIndex} ] }
+let currentPartner = null;
+let sheetMeta = {}; // { sheetName: { headerRow, startRow } }
+
+// ── GOOGLE IDENTITY ──
+function initGoogleAuth() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.CLIENT_ID,
+    scope: CONFIG.SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('Sign in failed: ' + resp.error, true); return; }
+      accessToken = resp.access_token;
+      await onSignedIn();
+    },
+  });
+}
+
+function signIn() {
+  if (tokenClient) tokenClient.requestAccessToken();
+  else showToast('Auth not initialised yet, try again in a moment', true);
+}
+
+async function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null; appData = {}; currentPartner = null;
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('app').classList.remove('ready');
+}
+
+async function onSignedIn() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+  await loadUserProfile();
+  await syncSheet();
+}
+
+async function loadUserProfile() {
+  try {
+    const r = await gfetch('https://www.googleapis.com/oauth2/v2/userinfo');
+    const u = await r.json();
+    document.getElementById('userName').textContent = u.name || u.email;
+    const av = document.getElementById('userAvatar');
+    if (u.picture) av.innerHTML = `<img src="${u.picture}" alt="">`;
+    else av.textContent = (u.name || 'U')[0].toUpperCase();
+  } catch(e) {}
+}
+
+// ── SHEETS API ──
+function gfetch(url, opts = {}) {
+  return fetch(url, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json', ...(opts.headers || {}) }
+  });
+}
+
+async function syncSheet() {
+  const btn = document.getElementById('syncBtn');
+  btn.classList.add('spinning');
+  try {
+    // Get all sheet names
+    const metaR = await gfetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?fields=sheets.properties`);
+    const meta = await metaR.json();
+    const sheets = meta.sheets.map(s => s.properties.title).filter(n => n !== '📊 Dashboard');
+
+    appData = {};
+    for (const name of sheets) {
+      const range = encodeURIComponent(`'${name}'!A1:I200`);
+      const r = await gfetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${range}`);
+      const data = await r.json();
+      const rows = data.values || [];
+
+      // Find header row
+      let headerRow = -1;
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].some(c => String(c).includes('Action Item'))) { headerRow = i; break; }
+      }
+      if (headerRow === -1) continue;
+      sheetMeta[name] = { headerRow, startRow: headerRow + 1 };
+
+      const actions = [];
+      for (let i = headerRow + 1; i < rows.length; i++) {
+        const r = rows[i];
+        const action = (r[1] || '').trim();
+        if (!action || action.startsWith('=')) continue;
+        actions.push({
+          action,
+          category: r[2] || '',
+          dueDate: r[3] || '',
+          status: r[4] || 'Not Started',
+          priority: r[5] || '🟡 Medium',
+          owner: r[6] || '',
+          notes: r[7] || '',
+          rowIndex: i, // actual row index in sheet values (0-based from sheet start)
+        });
+      }
+      appData[name] = actions;
+    }
+    renderSidebar();
+    if (currentPartner) renderTable(currentPartner);
+    else renderDashboard();
+    showToast('✅ Synced with Google Sheets');
+  } catch(e) {
+    showToast('Sync failed — check your connection', true);
+    console.error(e);
+  }
+  btn.classList.remove('spinning');
+}
+
+async function writeToSheet(partner, action, rowIndexInValues) {
+  // rowIndexInValues is 0-based index in the values array
+  // We need to convert to actual sheet row number (1-based)
+  const sheetRow = rowIndexInValues + 1; // +1 for 1-based
+  const range = encodeURIComponent(`'${partner}'!B${sheetRow}:I${sheetRow}`);
+  const values = [[
+    action.action, action.category, action.dueDate,
+    action.status, action.priority, action.owner, action.notes, ''
+  ]];
+  await gfetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${range}?valueInputOption=USER_ENTERED`,
+    { method: 'PUT', body: JSON.stringify({ values }) }
+  );
+}
+
+async function appendToSheet(partner, action) {
+  const range = encodeURIComponent(`'${partner}'!B:I`);
+  const values = [[
+    action.action, action.category, action.dueDate,
+    action.status, action.priority, action.owner, action.notes, ''
+  ]];
+  await gfetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    { method: 'POST', body: JSON.stringify({ values }) }
+  );
+}
+
+async function clearSheetRow(partner, rowIndexInValues) {
+  const sheetRow = rowIndexInValues + 1;
+  const range = encodeURIComponent(`'${partner}'!B${sheetRow}:I${sheetRow}`);
+  await gfetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${range}:clear`,
+    { method: 'POST', body: JSON.stringify({}) }
+  );
+}
+
+// ── RENDER ──
+function getStats(actions) {
+  const total = actions.length;
+  const completed = actions.filter(a => a.status === 'Completed').length;
+  const inProgress = actions.filter(a => a.status === 'In Progress').length;
+  const blocked = actions.filter(a => a.status === 'Blocked').length;
+  const pct = total ? Math.round(completed / total * 100) : 0;
+  return { total, completed, inProgress, blocked, pct };
+}
+
+function healthColor(s) {
+  if (s.total === 0) return ['#555', 'grey'];
+  if (s.blocked > 0) return [getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#ef4444', 'red'];
+  if (s.pct > 60) return ['#22c55e', 'green'];
+  if (s.pct > 30) return ['#f59e0b', 'yellow'];
+  return ['#ef4444', 'red'];
+}
+
+function renderSidebar() {
+  const list = document.getElementById('partnerList');
+  list.innerHTML = '';
+
+  // Dashboard item
+  const di = document.createElement('div');
+  di.className = 'p-item' + (currentPartner === null ? ' active' : '');
+  di.innerHTML = `<div class="p-dot" style="background:var(--orange)"></div><div class="p-name" style="${currentPartner===null?'color:var(--orange)':''}">📊 Dashboard</div>`;
+  di.onclick = () => { currentPartner = null; renderDashboard(); renderSidebar(); };
+  list.appendChild(di);
+
+  Object.entries(appData).forEach(([name, actions]) => {
+    const s = getStats(actions);
+    const [hc] = healthColor(s);
+    const item = document.createElement('div');
+    item.className = 'p-item' + (currentPartner === name ? ' active' : '');
+    item.innerHTML = `<div class="p-dot" style="background:${hc}"></div><div class="p-name">${name}</div><div class="p-count">${s.total}</div>`;
+    item.onclick = () => showPartner(name);
+    list.appendChild(item);
+  });
+}
+
+function renderDashboard() {
+  document.getElementById('topTitle').textContent = 'Dashboard';
+  document.getElementById('topBadge').style.display = 'none';
+  document.getElementById('addBtn').style.display = 'none';
+  document.getElementById('searchInp').value = '';
+
+  const all = Object.values(appData).flat();
+  const total = all.length;
+  const completed = all.filter(a => a.status === 'Completed').length;
+  const inProgress = all.filter(a => a.status === 'In Progress').length;
+  const blocked = all.filter(a => a.status === 'Blocked').length;
+
+  let html = `
+    <div class="stat-row">
+      <div class="stat"><div class="stat-lbl">Total Actions</div><div class="stat-val" style="color:var(--orange)">${total}</div></div>
+      <div class="stat"><div class="stat-lbl">In Progress</div><div class="stat-val" style="color:var(--blue)">${inProgress}</div></div>
+      <div class="stat"><div class="stat-lbl">Completed</div><div class="stat-val" style="color:var(--green)">${completed}</div></div>
+      <div class="stat"><div class="stat-lbl">Blocked</div><div class="stat-val" style="color:var(--red)">${blocked}</div></div>
+    </div>
+    <div class="partners-grid">`;
+
+  Object.entries(appData).forEach(([name, actions]) => {
+    const s = getStats(actions);
+    const [hc] = healthColor(s);
+    html += `
+      <div class="pc" onclick="showPartner('${esc(name)}')">
+        <div class="pc-head"><div class="pc-name">${name}</div><div class="h-dot" style="background:${hc};box-shadow:0 0 6px ${hc}"></div></div>
+        <div class="pc-bar"><div class="pc-fill" style="width:${s.pct}%"></div></div>
+        <div class="pc-stats">
+          <div class="ms"><div class="ms-v" style="color:var(--orange)">${s.total}</div><div class="ms-l">Total</div></div>
+          <div class="ms"><div class="ms-v" style="color:var(--green)">${s.completed}</div><div class="ms-l">Done</div></div>
+          <div class="ms"><div class="ms-v" style="color:var(--yellow)">${s.inProgress}</div><div class="ms-l">Active</div></div>
+          <div class="ms"><div class="ms-v" style="color:var(--red)">${s.blocked}</div><div class="ms-l">Blocked</div></div>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function showPartner(name) {
+  currentPartner = name;
+  document.getElementById('addBtn').style.display = 'flex';
+  renderSidebar();
+  renderTable(name);
+  closeSidebar();
+}
+
+function renderTable(name, search = '', statusF = '') {
+  const actions = appData[name] || [];
+  const filtered = actions.filter(a => {
+    const ms = !search || [a.action,a.owner,a.notes,a.category].some(v => v.toLowerCase().includes(search));
+    const mf = !statusF || a.status === statusF;
+    return ms && mf;
+  });
+
+  const s = getStats(actions);
+  document.getElementById('topTitle').textContent = name;
+  const badge = document.getElementById('topBadge');
+  badge.style.display = 'block';
+  badge.textContent = `${s.pct}% complete`;
+
+  let html = `
+    <div class="detail-head">
+      <button class="back" onclick="currentPartner=null;renderDashboard();renderSidebar();">← Back</button>
+      <div class="d-title">${name}</div>
+      <div class="d-meta">${s.total} actions &nbsp;·&nbsp; <span style="color:var(--green)">${s.completed} done</span> &nbsp;·&nbsp; <span style="color:var(--yellow)">${s.inProgress} active</span>${s.blocked ? ` &nbsp;·&nbsp; <span style="color:var(--red)">${s.blocked} blocked</span>` : ''}</div>
+    </div>
+    <div class="tbl-wrap"><div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>#</th><th>Action Item</th><th>Category</th><th>Due Date</th>
+        <th>Status</th><th>Priority</th><th>Owner</th><th>Notes</th><th></th>
+      </tr></thead><tbody>`;
+
+  if (!filtered.length) {
+    html += `<tr><td colspan="9"><div class="empty"><div class="empty-i">🎯</div><p>No actions found. Add one!</p></div></td></tr>`;
+  } else {
+    filtered.forEach((a, fi) => {
+      const realIdx = actions.indexOf(a);
+      const sk = a.status.replace(/\s+/g,'').toLowerCase();
+      const bc = {notstarted:'b-ns',inprogress:'b-ip',completed:'b-done',blocked:'b-block',deferred:'b-def'}[sk] || 'b-ns';
+      const pc = a.priority.includes('High') ? 'pri-h' : a.priority.includes('Medium') ? 'pri-m' : 'pri-l';
+      const dateStr = a.dueDate ? fmtDate(a.dueDate) : '—';
+      html += `
+        <tr>
+          <td class="td-num">${fi+1}</td>
+          <td class="td-action">${esc(a.action)}</td>
+          <td>${a.category ? `<span class="cat">${esc(a.category)}</span>` : '—'}</td>
+          <td class="td-date">${dateStr}</td>
+          <td><span class="badge ${bc}"><span class="bdot"></span>${a.status}</span></td>
+          <td class="${pc}">${a.priority || '—'}</td>
+          <td class="td-owner">${esc(a.owner) || '—'}</td>
+          <td class="td-notes">${esc(a.notes) || '—'}</td>
+          <td><div class="row-acts">
+            <button class="ra" onclick="openEdit(${realIdx})" title="Edit">✏️</button>
+            <button class="ra del" onclick="deleteRow(${realIdx})" title="Delete">🗑</button>
+          </div></td>
+        </tr>`;
+    });
+  }
+  html += '</tbody></table></div></div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function handleSearch() {
+  if (currentPartner) {
+    renderTable(currentPartner,
+      document.getElementById('searchInp').value.toLowerCase(),
+      document.getElementById('statusFlt').value);
+  }
+}
+
+// ── MODAL ──
+function openAdd() {
+  document.getElementById('modalTitle').textContent = 'Add Action Item';
+  document.getElementById('editIdx').value = '';
+  ['fAction','fOwner','fNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fCat').value = '';
+  document.getElementById('fDue').value = '';
+  document.getElementById('fStatus').value = 'Not Started';
+  document.getElementById('fPri').value = '🟡 Medium';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function openEdit(idx) {
+  const a = appData[currentPartner][idx];
+  document.getElementById('modalTitle').textContent = 'Edit Action Item';
+  document.getElementById('editIdx').value = idx;
+  document.getElementById('fAction').value = a.action;
+  document.getElementById('fCat').value = a.category || '';
+  document.getElementById('fDue').value = a.dueDate || '';
+  document.getElementById('fStatus').value = a.status || 'Not Started';
+  document.getElementById('fPri').value = a.priority || '🟡 Medium';
+  document.getElementById('fOwner').value = a.owner || '';
+  document.getElementById('fNotes').value = a.notes || '';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+async function saveAction() {
+  const action = document.getElementById('fAction').value.trim();
+  if (!action) { showToast('Action item is required', true); return; }
+
+  const item = {
+    action,
+    category: document.getElementById('fCat').value,
+    dueDate: document.getElementById('fDue').value,
+    status: document.getElementById('fStatus').value,
+    priority: document.getElementById('fPri').value,
+    owner: document.getElementById('fOwner').value,
+    notes: document.getElementById('fNotes').value,
+  };
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  document.getElementById('saveTxt').innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const idx = document.getElementById('editIdx').value;
+    if (idx === '') {
+      await appendToSheet(currentPartner, item);
+      showToast('✅ Action added to Google Sheet!');
+    } else {
+      const existing = appData[currentPartner][parseInt(idx)];
+      item.rowIndex = existing.rowIndex;
+      await writeToSheet(currentPartner, item, existing.rowIndex);
+      showToast('✅ Action updated in Google Sheet!');
+    }
+    closeModal();
+    await syncSheet();
+    if (currentPartner) renderTable(currentPartner);
+  } catch(e) {
+    showToast('Failed to save — check your connection', true);
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  document.getElementById('saveTxt').textContent = 'Save Action';
+}
+
+async function deleteRow(idx) {
+  if (!confirm('Delete this action item from your Google Sheet?')) return;
+  const a = appData[currentPartner][idx];
+  try {
+    await clearSheetRow(currentPartner, a.rowIndex);
+    showToast('🗑 Deleted from Google Sheet');
+    await syncSheet();
+    if (currentPartner) renderTable(currentPartner);
+  } catch(e) {
+    showToast('Delete failed', true);
+  }
+}
+
+// ── UTILS ──
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function parseDate(d) {
+  if (!d) return null;
+  const s = String(d).trim();
+  if (/^\d{4,6}$/.test(s) && Number(s) > 1000) {
+    const utc_days = Math.floor(Number(s) - 25569);
+    return new Date(utc_days * 86400 * 1000);
+  }
+  try {
+    const dt = new Date(s.includes('T') ? s : s + 'T00:00:00');
+    if (!isNaN(dt)) return dt;
+  } catch {}
+  return null;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = parseDate(d);
+  if (!dt || isNaN(dt)) return '—';
+  try {
+    return dt.toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'2-digit' });
+  } catch { return String(d); }
+}
+
+function showToast(msg, err = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (err ? ' err' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('mobOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mobOverlay').classList.remove('open');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── BOOT ──
+window.onload = () => {
+  // Load Google Identity Services
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.onload = () => initGoogleAuth();
+  document.head.appendChild(script);
+};
+</script>
+</body>
+</html>
