@@ -443,7 +443,7 @@ tbody tr:hover .row-acts{opacity:1;}
 <script>
 // ── CONFIG — fill these in after Google Cloud setup ──
 const CONFIG = {
-  CLIENT_ID: '718426114364-iofrq2afa0e9odo3u8t6ca39qjuvi2ma.apps.googleusercontent.com',        // From Google Cloud Console
+  CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID',        // From Google Cloud Console
   SPREADSHEET_ID: '1aRGAP32y1ObGDepk-MIdYT7g9BLBn5BzF_BpE5WBMjs',
   SCOPES: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile',
 };
@@ -528,6 +528,8 @@ async function syncSheet() {
       }
       if (headerRow === -1) continue;
       sheetMeta[name] = { headerRow, startRow: headerRow + 1 };
+      // Debug: log first data row
+      if (rows[headerRow+1]) console.log("DBG row sample for", name, ":", JSON.stringify(rows[headerRow+1]));
 
       const actions = [];
       for (let i = headerRow + 1; i < rows.length; i++) {
@@ -836,10 +838,18 @@ function esc(s) {
 function parseDate(d) {
   if (!d) return null;
   const s = String(d).trim();
+  // Google Sheets serial number
   if (/^\d{4,6}$/.test(s) && Number(s) > 1000) {
     const utc_days = Math.floor(Number(s) - 25569);
     return new Date(utc_days * 86400 * 1000);
   }
+  // DD-MMM-YY format e.g. 07-Apr-26
+  const dmy = s.match(/^(\d{1,2})[-\/](\w{3})[-\/](\d{2,4})$/);
+  if (dmy) {
+    const year = dmy[3].length === 2 ? '20' + dmy[3] : dmy[3];
+    return new Date(`${dmy[2]} ${dmy[1]} ${year}`);
+  }
+  // ISO or other readable string
   try {
     const dt = new Date(s.includes('T') ? s : s + 'T00:00:00');
     if (!isNaN(dt)) return dt;
@@ -850,7 +860,7 @@ function parseDate(d) {
 function fmtDate(d) {
   if (!d) return '—';
   const dt = parseDate(d);
-  if (!dt || isNaN(dt)) return '—';
+  if (!dt || isNaN(dt)) return String(d);
   try {
     return dt.toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'2-digit' });
   } catch { return String(d); }
